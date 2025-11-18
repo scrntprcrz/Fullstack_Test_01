@@ -1,0 +1,44 @@
+services:
+    db:
+        image: mariadb:10.4.28
+        container_name: camaron_db
+        restart: unless-stopped
+        environment:
+            MARIADB_ROOT_PASSWORD: root
+        ports:
+            - "3306:3306"
+        volumes:
+            - db_data:/var/lib/mysql
+            - ./docker/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+
+    backend:
+        image: node:22.14.0
+        container_name: camaron_backend
+        working_dir: /usr/src/app
+        env_file:
+            - ./backend/.env
+        environment:
+            DB_HOST: db
+            DB_PASSWORD: root
+        volumes:
+            - ./backend:/usr/src/app
+        command: sh -c "npm install && npm run dev"
+        depends_on:
+            - db
+        ports:
+            - "3000:3000"
+
+    frontend:
+        image: node:22.14.0
+        container_name: camaron_frontend
+        working_dir: /usr/src/app
+        volumes:
+            - ./frontend:/usr/src/app
+        command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+        depends_on:
+            - backend
+        ports:
+            - "5173:5173"
+
+volumes:
+    db_data:
